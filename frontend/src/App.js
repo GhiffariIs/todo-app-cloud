@@ -1,144 +1,134 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import './App.css';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
+const API_URL = 'http://localhost:5000/api';
 
 function App() {
   const [todos, setTodos] = useState([]);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [newTodo, setNewTodo] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
+  // Fetch todos from backend
   useEffect(() => {
     fetchTodos();
   }, []);
 
   const fetchTodos = async () => {
     try {
-      setLoading(true);
-      const response = await axios.get(`${API_URL}/todos`);
-      setTodos(response.data);
-      setError('');
-    } catch (err) {
-      setError('Failed to fetch todos');
-      console.error('Error fetching todos:', err);
-    } finally {
-      setLoading(false);
+      const response = await fetch(`${API_URL}/todos`);
+      const data = await response.json();
+      setTodos(data);
+    } catch (error) {
+      console.error('Error fetching todos:', error);
     }
   };
 
-  const addTodo = async (e) => {
+  // Add new todo
+  const handleAddTodo = async (e) => {
     e.preventDefault();
     
-    if (!title.trim()) {
-      setError('Title is required');
-      return;
-    }
+    if (!newTodo.trim()) return;
 
+    setLoading(true);
     try {
-      setLoading(true);
-      await axios.post(`${API_URL}/todos`, { title, description });
-      setTitle('');
-      setDescription('');
-      setError('');
-      fetchTodos();
-    } catch (err) {
-      setError('Failed to add todo');
-      console.error('Error adding todo:', err);
+      const response = await fetch(`${API_URL}/todos`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title: newTodo }),
+      });
+      
+      const data = await response.json();
+      setTodos([data, ...todos]);
+      setNewTodo('');
+    } catch (error) {
+      console.error('Error adding todo:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleTodo = async (id, completed) => {
+  // Toggle todo completion
+  const handleToggleTodo = async (id, completed) => {
     try {
-      await axios.put(`${API_URL}/todos/${id}`, { completed: !completed });
-      fetchTodos();
-    } catch (err) {
-      setError('Failed to update todo');
-      console.error('Error updating todo:', err);
+      await fetch(`${API_URL}/todos/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ completed: !completed }),
+      });
+      
+      setTodos(
+        todos.map((todo) =>
+          todo.id === id ? { ...todo, completed: !completed } : todo
+        )
+      );
+    } catch (error) {
+      console.error('Error updating todo:', error);
     }
   };
 
-  const deleteTodo = async (id) => {
+  // Delete todo
+  const handleDeleteTodo = async (id) => {
     try {
-      await axios.delete(`${API_URL}/todos/${id}`);
-      fetchTodos();
-    } catch (err) {
-      setError('Failed to delete todo');
-      console.error('Error deleting todo:', err);
+      await fetch(`${API_URL}/todos/${id}`, {
+        method: 'DELETE',
+      });
+      
+      setTodos(todos.filter((todo) => todo.id !== id));
+    } catch (error) {
+      console.error('Error deleting todo:', error);
     }
   };
 
   return (
     <div className="App">
       <div className="container">
-        <h1>📝 Todo App - Cloud Computing</h1>
-        <p className="subtitle">Fullstack Todo App with React, Node.js & PostgreSQL</p>
-
-        {error && <div className="error">{error}</div>}
-
-        <form onSubmit={addTodo} className="todo-form">
+        <h1>📝 Todo List</h1>
+        
+        <form onSubmit={handleAddTodo} className="add-todo-form">
           <input
             type="text"
-            placeholder="Todo title..."
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="input"
+            value={newTodo}
+            onChange={(e) => setNewTodo(e.target.value)}
+            placeholder="Tambahkan todo baru..."
+            className="todo-input"
+            disabled={loading}
           />
-          <textarea
-            placeholder="Description (optional)..."
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="input textarea"
-          />
-          <button type="submit" className="btn btn-primary" disabled={loading}>
-            {loading ? 'Adding...' : 'Add Todo'}
+          <button type="submit" className="add-button" disabled={loading}>
+            {loading ? 'Menambahkan...' : 'Tambah'}
           </button>
         </form>
 
         <div className="todos-list">
-          {loading && todos.length === 0 ? (
-            <p className="loading">Loading todos...</p>
-          ) : todos.length === 0 ? (
-            <p className="empty">No todos yet. Add one above! 👆</p>
+          {todos.length === 0 ? (
+            <p className="empty-message">Tidak ada todo. Tambahkan yang pertama!</p>
           ) : (
             todos.map((todo) => (
-              <div key={todo.id} className={`todo-item ${todo.completed ? 'completed' : ''}`}>
+              <div key={todo.id} className="todo-item">
                 <div className="todo-content">
-                  <h3 onClick={() => toggleTodo(todo.id, todo.completed)}>
-                    {todo.completed && '✓ '}
+                  <input
+                    type="checkbox"
+                    checked={todo.completed === 1}
+                    onChange={() => handleToggleTodo(todo.id, todo.completed)}
+                    className="todo-checkbox"
+                  />
+                  <span className={todo.completed === 1 ? 'completed' : ''}>
                     {todo.title}
-                  </h3>
-                  {todo.description && <p>{todo.description}</p>}
-                  <span className="todo-date">
-                    {new Date(todo.created_at).toLocaleDateString()}
                   </span>
                 </div>
-                <div className="todo-actions">
-                  <button
-                    onClick={() => toggleTodo(todo.id, todo.completed)}
-                    className="btn btn-toggle"
-                  >
-                    {todo.completed ? 'Undo' : 'Complete'}
-                  </button>
-                  <button
-                    onClick={() => deleteTodo(todo.id)}
-                    className="btn btn-delete"
-                  >
-                    Delete
-                  </button>
-                </div>
+                <button
+                  onClick={() => handleDeleteTodo(todo.id)}
+                  className="delete-button"
+                >
+                  🗑️
+                </button>
               </div>
             ))
           )}
         </div>
-
-        <footer className="footer">
-          <p>Built with ❤️ for Cloud Computing Course</p>
-        </footer>
       </div>
     </div>
   );

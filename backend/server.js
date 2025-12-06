@@ -1,149 +1,116 @@
 const express = require('express');
 const cors = require('cors');
-const bodyParser = require('body-parser');
-const { Pool } = require('pg');
-require('dotenv').config();
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = 5000;
 
 // Middleware
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 
-// Database connection
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'tododb',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
-});
-
-// Initialize database
-const initDb = async () => {
-  try {
-    await pool.query(`
+// Database setup
+const dbPath = path.join(__dirname, 'todos.db');
+const db = new sqlite3.Database(dbPath, (err) => {
+  if (err) {
+    console.error('Error opening database:', err);
+  } else {
+    console.log('Connected to SQLite database');
+    // Create todos table if it doesn't exist
+    db.run(`
       CREATE TABLE IF NOT EXISTS todos (
-        id SERIAL PRIMARY KEY,
-        title VARCHAR(255) NOT NULL,
-        description TEXT,
-        completed BOOLEAN DEFAULT false,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        completed INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    console.log('Database initialized successfully');
-  } catch (error) {
-    console.error('Error initializing database:', error);
   }
-};
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
+
+// API Routes
 
 // Get all todos
-app.get('/api/todos', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM todos ORDER BY created_at DESC');
-    res.json(result.rows);
-  } catch (error) {
-    console.error('Error fetching todos:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
+app.get('/api/todos', (req, res) => {
+  db.all('SELECT * FROM todos ORDER BY created_at DESC', [], (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(rows);
+  });
 });
 
-// Get single todo
-app.get('/api/todos/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await pool.query('SELECT * FROM todos WHERE id = $1', [id]);
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Todo not found' });
-    }
-    
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Error fetching todo:', error);
-    res.status(500).json({ error: 'Internal server error' });
+// Create a new todo
+app.post('/api/todos', (req, res) => {
+  const { title } = req.body;
+  
+  if (!title) {
+    res.status(400).json({ error: 'Title is required' });
+    return;
   }
+
+  db.run(
+    'INSERT INTO todos (title) VALUES (?)',
+    [title],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({
+        id: this.lastID,
+        title,
+        completed: 0
+      });
+    }
+  );
 });
 
-// Create todo
-app.post('/api/todos', async (req, res) => {
-  try {
-    const { title, description } = req.body;
-    
-    if (!title) {
-      return res.status(400).json({ error: 'Title is required' });
-    }
-    
-    const result = await pool.query(
-      'INSERT INTO todos (title, description) VALUES ($1, $2) RETURNING *',
-      [title, description]
-    );
-    
-    res.status(201).json(result.rows[0]);
-  } catch (error) {
-    console.error('Error creating todo:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+// Update todo (toggle completed)
+app.put('/api/todos/:id', (req, res) => {
+  const { id } = req.params;
+  const { completed } = req.body;
 
-// Update todo
-app.put('/api/todos/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { title, description, completed } = req.body;
-    
-    const result = await pool.query(
-      `UPDATE todos 
-       SET title = COALESCE($1, title), 
-           description = COALESCE($2, description), 
-           completed = COALESCE($3, completed),
-           updated_at = CURRENT_TIMESTAMP
-       WHERE id = $4 
-       RETURNING *`,
-      [title, description, completed, id]
-    );
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Todo not found' });
+  db.run(
+    'UPDATE todos SET completed = ? WHERE id = ?',
+    [completed ? 1 : 0, id],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'Todo updated successfully' });
     }
-    
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Error updating todo:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
+  );
 });
 
 // Delete todo
-app.delete('/api/todos/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await pool.query('DELETE FROM todos WHERE id = $1 RETURNING *', [id]);
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Todo not found' });
+app.delete('/api/todos/:id', (req, res) => {
+  const { id } = req.params;
+
+  db.run('DELETE FROM todos WHERE id = ?', [id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
     }
-    
     res.json({ message: 'Todo deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting todo:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
+  });
 });
 
 // Start server
-const startServer = async () => {
-  await initDb();
-  app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-  });
-};
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
+});
 
-startServer();
+// Close database connection on exit
+process.on('SIGINT', () => {
+  db.close((err) => {
+    if (err) {
+      console.error(err.message);
+    }
+    console.log('Database connection closed');
+    process.exit(0);
+  });
+});

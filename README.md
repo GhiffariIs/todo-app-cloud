@@ -1,41 +1,23 @@
-# 📝 Todo App - Cloud Computing Project
+# Todo App - React + Node.js + SQLite
 
-Aplikasi Todo List fullstack yang di-containerize menggunakan Docker dan di-deploy ke Google Cloud Platform (GCP) Cloud Run.
+Aplikasi Todo List sederhana dengan fitur Create, Read, Update, dan Delete (CRUD).
 
-## 🏗️ Architecture
-┌─────────────┐       ┌─────────────┐        ┌──────────────┐
-│   Frontend  │────▶ │   Backend   │ ────▶  │ PostgreSQL   │
-│   (React)   │       │  (Node.js)  │        │ Database     │
-│  Port 3000  │       │  Port 8080  │        │ Port 5432    │
-└─────────────┘       └─────────────┘        └──────────────┘
+## Teknologi yang Digunakan
 
-### Tech Stack
+- **Frontend**: React
+- **Backend**: Node.js + Express
+- **Database**: SQLite
 
-- **Frontend**: React 18, Axios, CSS3
-- **Backend**: Node.js, Express.js, PostgreSQL driver
-- **Database**: PostgreSQL 15
-- **Containerization**: Docker, Docker Compose
-- **Cloud Platform**: Google Cloud Platform (GCP)
-- **Deployment**: Cloud Run
-- **CI/CD**: Cloud Build
+## Cara Menjalankan Aplikasi
 
-## 📋 Prerequisites
+### 1. Install Dependencies
 
-### Local Development
-- Docker Desktop
-- Node.js 18+ (optional, untuk development tanpa Docker)
-- Git
-
-### GCP Deployment
-- Google Cloud Account
-- gcloud CLI installed
-- Project ID di GCP
-- Cloud SQL instance (PostgreSQL)
-
-## 🚀 Quick Start - Local Development
-
-### 1. Clone Repository
-
+#### Backend
 ```powershell
-git clone https://github.com/GhiffariIs/todo-app-cloud.git
-cd todo-app-cloud
+cd backend
+npm instal
+
+#### Frontend
+```powershell
+cd frontend
+npm install
