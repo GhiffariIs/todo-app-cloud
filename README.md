@@ -23,6 +23,7 @@ Aplikasi Todo List modern dengan arsitektur cloud-native, dibangun menggunakan R
 - ✅ **Cloud-Native** - Deployed di Google Cloud Run dengan auto-scaling
 
 ## 🏗️ Architecture
+```powershell
 ┌─────────────────────────────────────────────────────────┐
 │ User Browser │
 └────────────────────┬────────────────────────────────────┘
@@ -46,6 +47,7 @@ Aplikasi Todo List modern dengan arsitektur cloud-native, dibangun menggunakan R
 │ Database (SQLite) │
 │ Embedded in Backend Container │
 └─────────────────────────────────────────────────────────┘
+```
 
 ## 🚀 Tech Stack
 
@@ -76,6 +78,7 @@ Aplikasi Todo List modern dengan arsitektur cloud-native, dibangun menggunakan R
 - **Version Control**: Git + GitHub
 
 ## 📁 Project Structure
+```markdown
 todo-app-cloud/
 ├── backend/ # Backend service
 │ ├── server.js # Express server & API routes
@@ -109,6 +112,7 @@ todo-app-cloud/
 ├── ARCHITECTURE.md # Architecture documentation
 ├── DOCKER.md # Docker usage guide
 └── DEPLOY-GUIDE.md # Deployment guide
+```
 
 ## 🛠️ Local Development
 
