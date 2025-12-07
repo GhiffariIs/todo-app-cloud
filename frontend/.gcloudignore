@@ -6,9 +6,7 @@ npm-debug.log
 build/
 .env.local
 .env.development
-.dockerignore
 README.md
-Dockerfile
 Dockerfile.dev
 docker-compose*.yaml
 src/__tests__/

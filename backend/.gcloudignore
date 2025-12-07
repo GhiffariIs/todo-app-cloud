@@ -7,8 +7,6 @@ npm-debug.log
 todos.db
 .env.local
 .env.development
-.dockerignore
 README.md
-Dockerfile
 Dockerfile.dev
 docker-compose*.yaml
